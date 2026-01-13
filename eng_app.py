@@ -22,6 +22,7 @@ Enter a word and press **ENTER** to get:
 - 3 antonyms  
 - 5 example sentences  
 - 3 meanings  
+- 1–4 line real-world paragraph (**bold & underlined word**)  
 - Translation + pronunciation  
 """
 )
@@ -48,7 +49,6 @@ LANGUAGES = {
 # ---------------- SIDEBAR ----------------
 with st.sidebar:
     st.header("⚙️ AI Configuration")
-
     groq_key = st.text_input(
         "Groq API Key",
         type="password",
@@ -59,27 +59,12 @@ with st.sidebar:
         st.session_state["GROQ_API_KEY"] = groq_key
 
     st.divider()
-
     st.header("🌍 Language Settings")
+    analysis_language = st.selectbox("Analysis Language", list(LANGUAGES.keys()))
+    translate_language = st.selectbox("Translate Result Into", list(LANGUAGES.keys()))
 
-    analysis_language = st.selectbox(
-        "Analysis Language",
-        list(LANGUAGES.keys()),
-        index=0
-    )
-
-    translate_language = st.selectbox(
-        "Translate Result Into",
-        list(LANGUAGES.keys()),
-        index=0
-    )
-
-# ---------------- WORD INPUT (ENTER KEY WORKS) ----------------
-word = st.text_input(
-    "Enter a word",
-    placeholder="Example: Courage",
-    key="word_input"
-)
+# ---------------- WORD INPUT ----------------
+word = st.text_input("Enter a word", placeholder="Example: Courage")
 
 # Trigger automatically when ENTER is pressed
 if word and st.session_state.get("last_word") != word:
@@ -106,6 +91,22 @@ Format clearly. Dictionary style only.
 """
 )
 
+paragraph_prompt = ChatPromptTemplate.from_template(
+    """
+Write a 1-4 line paragraph using the word **{word}** naturally.
+The word should be **bold and underlined** using Markdown: **__word__**.
+Use real-world style: like a news article, book, or newspaper (e.g., BBC, NYTimes).
+Mention the source type below the paragraph.
+
+Format:
+## 📰 Example Paragraph
+<paragraph>
+
+Source:
+<source>
+"""
+)
+
 translation_prompt = ChatPromptTemplate.from_template(
     """
 Translate the following content into **{target_language}**.
@@ -129,32 +130,30 @@ if run_analysis:
             )
 
             # Step 1: Word analysis
-            analysis_chain = analysis_prompt | llm
-            analysis = analysis_chain.invoke(
+            analysis_result = (analysis_prompt | llm).invoke(
                 {"word": word, "language": analysis_language}
-            )
-            result_text = analysis.content
+            ).content
 
-            # Step 2: Translation
+            # Step 2: Real-world paragraph
+            paragraph_result = (paragraph_prompt | llm).invoke({"word": word}).content
+
+            # Combine results
+            result_text = analysis_result + "\n\n---\n\n" + paragraph_result
+
+            # Step 3: Translation
             if analysis_language != translate_language:
-                translate_chain = translation_prompt | llm
-                translated = translate_chain.invoke(
-                    {
-                        "content": result_text,
-                        "target_language": translate_language
-                    }
-                )
-                result_text = translated.content
+                result_text = (translation_prompt | llm).invoke(
+                    {"content": result_text, "target_language": translate_language}
+                ).content
 
-            # Display result
+            # Display results
             st.markdown("## 📖 Result")
-            st.markdown(result_text)
+            st.markdown(result_text, unsafe_allow_html=True)
 
-            # Step 3: Pronunciation (translated language)
+            # Step 4: Pronunciation
             st.markdown("## 🔊 Pronunciation")
             try:
-                tts_lang = LANGUAGES[translate_language]
-                tts = gTTS(text=word, lang=tts_lang)
+                tts = gTTS(text=word, lang=LANGUAGES[translate_language])
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as f:
                     tts.save(f.name)
                     st.audio(f.name)
