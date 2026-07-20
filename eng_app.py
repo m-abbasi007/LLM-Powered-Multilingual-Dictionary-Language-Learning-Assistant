@@ -150,17 +150,17 @@ if run_analysis:
             )
 
            # Step 1: Word analysis
-analysis_result = (analysis_prompt | llm).invoke(
-    {"word": word, "language": analysis_language}
-).content
+           analysis_result = (analysis_prompt | llm).invoke(
+            {"word": word, "language": analysis_language}
+           ).content
 
-# Step 1.5: Urdu Translation (only if analysis language is English)
-urdu_result = ""
+            # Step 1.5: Urdu Translation (only if analysis language is English)
+            urdu_result = ""
 
-if LANGUAGES[analysis_language] == "en":
-    urdu_result = (
-        urdu_word_prompt | llm
-    ).invoke({"word": word}).content
+            if LANGUAGES[analysis_language] == "en":
+                urdu_result = (
+                    urdu_word_prompt | llm
+                ).invoke({"word": word}).content
 
             # Step 2: Real-world paragraph
             paragraph_result = (paragraph_prompt | llm).invoke({"word": word}).content
