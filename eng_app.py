@@ -117,6 +117,26 @@ Content:
 """
 )
 
+urdu_word_prompt = ChatPromptTemplate.from_template(
+    """
+You are an English to Urdu dictionary.
+
+Translate ONLY the English word below into Urdu.
+
+Return exactly in this format:
+
+## 🇵🇰 Urdu Translation
+
+**English Word:** {word}
+
+**Urdu Meaning:** <Urdu translation>
+
+**Roman Urdu:** <Roman Urdu pronunciation>
+
+Do not explain anything else.
+"""
+)
+
 # ---------------- EXECUTION ----------------
 if run_analysis:
     if "GROQ_API_KEY" not in st.session_state:
