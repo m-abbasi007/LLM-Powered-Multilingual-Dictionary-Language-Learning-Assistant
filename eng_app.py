@@ -149,24 +149,31 @@ if run_analysis:
                 api_key=st.session_state["GROQ_API_KEY"]
             )
 
-           # Step 1: Word analysis
-           analysis_result = (analysis_prompt | llm).invoke(
-            {"word": word, "language": analysis_language}
-           ).content
-
-            # Step 1.5: Urdu Translation (only if analysis language is English)
+            # Step 1: Word analysis
+            analysis_result = (analysis_prompt | llm).invoke(
+                {"word": word, "language": analysis_language}
+            ).content
+            
+            # Step 1.5: Urdu Translation
             urdu_result = ""
-
+            
             if LANGUAGES[analysis_language] == "en":
                 urdu_result = (
                     urdu_word_prompt | llm
                 ).invoke({"word": word}).content
-
+            
             # Step 2: Real-world paragraph
-            paragraph_result = (paragraph_prompt | llm).invoke({"word": word}).content
-
+            paragraph_result = (paragraph_prompt | llm).invoke(
+                {"word": word}
+            ).content
+            
             # Combine results
-            result_text = analysis_result + "\n\n---\n\n" + paragraph_result
+            result_text = analysis_result
+            
+            if urdu_result:
+                result_text += "\n\n---\n\n" + urdu_result
+            
+            result_text += "\n\n---\n\n" + paragraph_result
 
             # Step 3: Translation
             if analysis_language != translate_language:
